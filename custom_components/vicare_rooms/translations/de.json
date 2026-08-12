@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ViCare Raumwerte",
+        "description": "Gateway mit Smart RoomControl auswählen.",
+        "data": {
+          "gateway": "Gateway"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieses Gateway ist bereits konfiguriert.",
+      "vicare_missing": "Bitte zuerst die offizielle ViCare-Integration einrichten — sie liefert den Zugriffs-Token.",
+      "no_roomcontrol": "Im ViCare-Konto wurde kein Smart RoomControl gefunden.",
+      "cannot_connect": "Viessmann-API nicht erreichbar."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Raumnamen",
+        "description": "Anzeigename je Raum-Index (room_N = Raum N der Viessmann-API). Leere Felder verwenden den API-Namen, falls verfügbar, sonst „Raum N“. Hinweis: Die Viessmann-API liefert Raumnamen nur mit kostenpflichtigem API-Paket."
+      }
+    }
+  }
+}
