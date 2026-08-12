@@ -24,5 +24,3 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # "brands" erst entfernen, wenn der PR bei home-assistant/brands gemerged ist
-          ignore: brands

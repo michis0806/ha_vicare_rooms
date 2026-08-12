@@ -1,13 +1,13 @@
 {
   "domain": "vicare_rooms",
   "name": "ViCare Rooms",
+  "after_dependencies": ["vicare"],
   "codeowners": ["@michis0806"],
   "config_flow": true,
-  "after_dependencies": ["vicare"],
   "documentation": "https://github.com/michis0806/ha_vicare_rooms",
-  "issue_tracker": "https://github.com/michis0806/ha_vicare_rooms/issues",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/michis0806/ha_vicare_rooms/issues",
   "requirements": [],
-  "version": "1.1.1"
+  "version": "1.1.2"
 }
