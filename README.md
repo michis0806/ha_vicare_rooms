@@ -70,6 +70,11 @@ indices match the order of the rooms in the ViCare app.
 Values are polled every 5 minutes. If the Viessmann API fails temporarily, the last
 known values are kept for up to 30 minutes before entities become `unavailable`.
 
+## Icon
+
+The integration ships its own brand icon (`brand/` folder inside the integration);
+Home Assistant 2026.3 or newer picks it up automatically.
+
 ## Disclaimer
 
 This project is not affiliated with Viessmann. Use at your own risk.
