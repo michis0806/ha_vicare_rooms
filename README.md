@@ -1,4 +1,7 @@
-# ViCare Raumwerte (`vicare_rooms`)
+# ViCare Rooms (`vicare_rooms`)
+
+[![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=michis0806&repository=ha_vicare_rooms&category=integration)
+[![Open your Home Assistant instance and start setting up this integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=vicare_rooms)
 
 Home Assistant custom integration that exposes **per-room temperature and humidity**
 from a Viessmann **Smart RoomControl** (ViCare room control) as proper sensor
@@ -31,9 +34,11 @@ available** through the public Viessmann API.
 
 ### HACS (custom repository)
 
+Click the HACS badge above, or manually:
+
 1. HACS → Integrations → ⋮ → *Custom repositories*
 2. Add `https://github.com/michis0806/ha_vicare_rooms` (category: Integration)
-3. Install **ViCare Raumwerte** and restart Home Assistant.
+3. Install **ViCare Rooms** and restart Home Assistant.
 
 ### Manual
 
@@ -42,7 +47,7 @@ and restart Home Assistant.
 
 ## Setup
 
-Settings → Devices & services → *Add integration* → **ViCare Raumwerte**.
+Settings → Devices & services → *Add integration* → **ViCare Rooms**.
 Installation, gateway and RoomControl are discovered automatically; if you have
 several gateways with room control you can pick one (one config entry per gateway).
 
@@ -81,7 +86,7 @@ Die offizielle ViCare-Integration bietet diese Werte nicht an.
   OAuth-Token, keine eigene Anmeldung nötig).
 - Installation über HACS (Custom Repository) oder manuell nach
   `config/custom_components/`, danach Neustart.
-- Einrichtung über *Integration hinzufügen* → **ViCare Raumwerte** (automatische
+- Einrichtung über *Integration hinzufügen* → **ViCare Rooms** (automatische
   Erkennung) oder per `vicare_rooms:` in der `configuration.yaml`.
 - **Raumnamen:** Der Namens-Endpunkt der Viessmann-API ist kostenpflichtig
   (HTTP 402 ohne gebuchtes Paket). Namen lassen sich stattdessen im

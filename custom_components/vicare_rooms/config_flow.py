@@ -49,7 +49,7 @@ class ViCareRoomsConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_GATEWAY_SERIAL: candidate[CONF_GATEWAY_SERIAL],
             CONF_ROOMCONTROL_ID: candidate[CONF_ROOMCONTROL_ID],
         }
-        return self.async_create_entry(title="ViCare Raumwerte", data=data)
+        return self.async_create_entry(title="ViCare Rooms", data=data)
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         if not self._candidates:
