@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ViCare Rooms",
+        "description": "Select the gateway with a Smart RoomControl.",
+        "data": {
+          "gateway": "Gateway"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured.",
+      "vicare_missing": "Please set up the official ViCare integration first — it provides the access token.",
+      "no_roomcontrol": "No Smart RoomControl was found in the ViCare account.",
+      "cannot_connect": "Viessmann API not reachable."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Room names",
+        "description": "Display name per room index (room_N = room N of the Viessmann API). Empty fields use the API name if available, otherwise \"Room N\". Note: the Viessmann API only provides room names with a paid API package."
+      }
+    }
+  }
+}
