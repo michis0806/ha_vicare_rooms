@@ -152,13 +152,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data[CONF_KNOWN_ROOMS] = sorted(known)
         hass.config_entries.async_update_entry(entry, data=data)
 
-    dr.async_get(hass).async_get_or_create(
+    registry = dr.async_get(hass)
+    hub = registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, data[CONF_GATEWAY_SERIAL])},
         name="ViCare RoomControl",
         manufacturer="Viessmann",
         model="Smart RoomControl",
     )
+    # Die Raum-Geräte hier anlegen statt über DeviceInfo(via_device=...) in den
+    # Sensoren: via_device ist deprecated (Entfernung 2027.8), via_device_id
+    # braucht die id des bereits angelegten Gateway-Geräts.
+    for idx in sorted(known):
+        registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, f"{data[CONF_GATEWAY_SERIAL]}-room-{idx}")},
+            name=coordinator.room_display_name(idx),
+            manufacturer="Viessmann",
+            model="Smart RoomControl",
+            via_device_id=hub.id,
+        )
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

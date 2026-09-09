@@ -29,9 +29,8 @@ async def async_setup_entry(
     )
     entities: list[ViCareRoomSensor] = []
     for idx in rooms:
-        display = coordinator.room_display_name(idx)
-        entities.append(ViCareRoomSensor(coordinator, gateway_serial, idx, display, "t"))
-        entities.append(ViCareRoomSensor(coordinator, gateway_serial, idx, display, "h"))
+        entities.append(ViCareRoomSensor(coordinator, gateway_serial, idx, "t"))
+        entities.append(ViCareRoomSensor(coordinator, gateway_serial, idx, "h"))
     async_add_entities(entities)
 
 
@@ -46,7 +45,6 @@ class ViCareRoomSensor(CoordinatorEntity[ViCareRoomsCoordinator], SensorEntity):
         coordinator: ViCareRoomsCoordinator,
         gateway_serial: str,
         idx: int,
-        display: str,
         kind: str,
     ) -> None:
         super().__init__(coordinator)
@@ -60,12 +58,9 @@ class ViCareRoomSensor(CoordinatorEntity[ViCareRoomsCoordinator], SensorEntity):
             self._attr_unique_id = f"{gateway_serial}-room-{idx}-humidity"
             self._attr_device_class = SensorDeviceClass.HUMIDITY
             self._attr_native_unit_of_measurement = PERCENTAGE
+        # Das Raum-Gerät legt __init__.py an, hier genügt die Zuordnung.
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"{gateway_serial}-room-{idx}")},
-            name=display,
-            manufacturer="Viessmann",
-            model="Smart RoomControl",
-            via_device=(DOMAIN, gateway_serial),
+            identifiers={(DOMAIN, f"{gateway_serial}-room-{idx}")}
         )
 
     @property
