@@ -1,19 +1,33 @@
 {
   "config": {
     "step": {
-      "user": {
+      "gateway": {
         "title": "ViCare Rooms",
         "description": "Select the gateway with a Smart RoomControl.",
         "data": {
           "gateway": "Gateway"
         }
+      },
+      "pick_implementation": {
+        "title": "Application credentials",
+        "data": {
+          "implementation": "API client"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to ViCare Rooms",
+        "description": "ViCare Rooms needs its own Viessmann authorization. Sign in to the account that contains your existing gateway. Your sensors and room names will be kept."
       }
     },
     "abort": {
       "already_configured": "This gateway is already configured.",
-      "vicare_missing": "Please set up the official ViCare integration first — it provides the access token.",
       "no_roomcontrol": "No Smart RoomControl was found in the ViCare account.",
-      "cannot_connect": "Viessmann API not reachable."
+      "cannot_connect": "Viessmann API not reachable.",
+      "invalid_auth": "Viessmann rejected the authorization. Please sign in again.",
+      "wrong_account": "The authorized account does not contain the existing gateway. Sign in with the correct Viessmann account.",
+      "reauth_successful": "ViCare Rooms was successfully authorized.",
+      "setup_required": "Add ViCare Rooms in Settings > Devices & services to sign in. Remove vicare_rooms: from configuration.yaml.",
+      "missing_configuration": "Configure application credentials for ViCare Rooms first."
     }
   },
   "options": {
@@ -23,5 +37,8 @@
         "description": "Display name per room index (room_N = room N of the Viessmann API). Empty fields use the API name if available, otherwise \"Room N\". Note: the Viessmann API only provides room names with a paid API package."
       }
     }
+  },
+  "application_credentials": {
+    "description": "Create a Viessmann API client with Google reCAPTCHA disabled as described in the [setup instructions]({more_info_url}). Enter its Client ID. PKCE is used, so the client secret is ignored; enter any value."
   }
 }

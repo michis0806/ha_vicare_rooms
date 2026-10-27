@@ -2,6 +2,9 @@
 
 DOMAIN = "vicare_rooms"
 
+AUTHORIZE_URL = "https://iam.viessmann-climatesolutions.com/idp/v3/authorize"
+TOKEN_URL = "https://iam.viessmann-climatesolutions.com/idp/v3/token"
+
 API_BASE = "https://api.viessmann-climatesolutions.com/iot/v2"
 INSTALLATIONS_URL = f"{API_BASE}/equipment/installations?includeGateways=true"
 
@@ -10,8 +13,8 @@ CONF_GATEWAY_SERIAL = "gateway_serial"
 CONF_ROOMCONTROL_ID = "roomcontrol_id"
 CONF_KNOWN_ROOMS = "known_rooms"
 
-UPDATE_INTERVAL = 300   # Sekunden
-GRACE_SECONDS = 1800    # bei API-Störung alte Werte max. 30 Min weiterreichen
+UPDATE_INTERVAL = 300  # Sekunden
+GRACE_SECONDS = 1800  # bei API-Störung alte Werte max. 30 Min weiterreichen
 REQUEST_TIMEOUT = 15
 
 

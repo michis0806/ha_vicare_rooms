@@ -5,6 +5,21 @@ All notable changes to this integration are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-10-27
+
+### Changed
+
+- **Breaking:** ViCare Rooms now uses its own OAuth2 authorization with PKCE and
+  Home Assistant Application Credentials. The official ViCare integration is no
+  longer required; its config entries and tokens are never read.
+- Existing 1.x entries request a one-time sign-in with their own credentials.
+  Re-authentication retains config entries, gateway and sensor IDs, known rooms
+  and room-name options, and verifies access to the existing gateway.
+- Tokens are automatically refreshed by Home Assistant. Revoked authorization
+  requests re-authentication immediately, even during the API outage grace period.
+- Setup is now UI-only; remove the legacy `vicare_rooms:` YAML key.
+- Requires Home Assistant 2026.10.0 or newer.
+
 ## [1.1.3] - 2026-09-09
 
 ### Changed
@@ -63,3 +78,5 @@ Initial release. This version was never tagged.
 [1.1.2]: https://github.com/michis0806/ha_vicare_rooms/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/michis0806/ha_vicare_rooms/compare/79ca584...v1.1.1
 [1.1.0]: https://github.com/michis0806/ha_vicare_rooms/commit/79ca584
+
+[2.0.0]: https://github.com/michis0806/ha_vicare_rooms/compare/v1.1.3...v2.0.0

@@ -1,26 +1,29 @@
 """ViCare Raumwerte — Raumtemperaturen/-feuchten vom Viessmann Smart RoomControl.
 
-Ergänzt die offizielle vicare-Integration: nutzt deren OAuth-Token und liest
-die rooms.*-Features des RoomControl-Geräts direkt von der Viessmann-API.
+Liest die rooms.*-Features mit einer eigenen OAuth-Anmeldung bei Viessmann.
 """
+
 from __future__ import annotations
 
 import logging
 import time
 from datetime import timedelta
-from typing import Any
 
-import aiohttp
 import voluptuous as vol
-
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    ImplementationUnavailableError,
+    UnknownImplementationError,
+)
+from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .api import ViCareRoomsApi
 from .const import (
     CONF_GATEWAY_SERIAL,
     CONF_INSTALLATION_ID,
@@ -28,89 +31,26 @@ from .const import (
     CONF_ROOMCONTROL_ID,
     DOMAIN,
     GRACE_SECONDS,
-    INSTALLATIONS_URL,
-    REQUEST_TIMEOUT,
     UPDATE_INTERVAL,
     features_url,
-    rooms_map_url,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-# Der yaml-Schlüssel `vicare_rooms:` dient nur als Anstoß, den Config-Eintrag
-# beim ersten Start automatisch anzulegen (Import-Flow). Optional.
-CONFIG_SCHEMA = vol.Schema({vol.Optional(DOMAIN): vol.Schema({})}, extra=vol.ALLOW_EXTRA)
+# Accept legacy YAML, but interactive OAuth setup must happen in the UI.
+CONFIG_SCHEMA = vol.Schema(
+    {vol.Optional(DOMAIN): vol.Schema({})}, extra=vol.ALLOW_EXTRA
+)
 
 PLATFORMS = ["sensor"]
 
 
-def get_vicare_token(hass: HomeAssistant) -> str | None:
-    """Access-Token der offiziellen vicare-Integration holen."""
-    for entry in hass.config_entries.async_entries("vicare"):
-        token = (entry.data.get("token") or {}).get("access_token")
-        if token:
-            return token
-    return None
-
-
-async def api_get(hass: HomeAssistant, url: str, token: str) -> dict:
-    session = async_get_clientsession(hass)
-    resp = await session.get(
-        url,
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT),
-    )
-    resp.raise_for_status()
-    return await resp.json()
-
-
-async def async_discover_roomcontrols(
-    hass: HomeAssistant, token: str
-) -> list[dict[str, Any]]:
-    """Alle Gateways mit RoomControl-Gerät im ViCare-Konto finden."""
-    payload = await api_get(hass, INSTALLATIONS_URL, token)
-    found: list[dict[str, Any]] = []
-    for inst in payload.get("data", []):
-        for gw in inst.get("gateways") or []:
-            for dev in gw.get("devices") or []:
-                if dev.get("deviceType") == "roomControl":
-                    found.append(
-                        {
-                            CONF_INSTALLATION_ID: inst["id"],
-                            CONF_GATEWAY_SERIAL: gw["serial"],
-                            CONF_ROOMCONTROL_ID: dev["id"],
-                            "title": inst.get("description") or str(inst["id"]),
-                        }
-                    )
-    return found
-
-
-async def async_fetch_room_names(
-    hass: HomeAssistant, token: str, installation_id
-) -> dict[int, str]:
-    """Raumnamen abrufen. Der Endpunkt ist monetarisiert und antwortet ohne
-    gebuchtes API-Paket mit HTTP 402 — dann leeres Mapping zurückgeben."""
-    try:
-        payload = await api_get(hass, rooms_map_url(installation_id), token)
-    except Exception as err:
-        _LOGGER.debug("Raumnamen nicht verfügbar: %s", err)
-        return {}
-    raw = payload.get("data", payload)
-    if isinstance(raw, dict):
-        raw = raw.get("rooms", [])
-    names: dict[int, str] = {}
-    for item in raw if isinstance(raw, list) else []:
-        if not isinstance(item, dict):
-            continue
-        idx = item.get("id", item.get("roomId"))
-        name = item.get("name") or item.get("title")
-        if isinstance(idx, int) and name:
-            names[idx] = str(name)
-    return names
-
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     if DOMAIN in config and not hass.config_entries.async_entries(DOMAIN):
+        _LOGGER.warning(
+            "Set up ViCare Rooms in Settings > Devices & services and remove "
+            "vicare_rooms: from configuration.yaml; OAuth requires an interactive login"
+        )
         hass.async_create_task(
             hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": SOURCE_IMPORT}, data={}
@@ -119,31 +59,43 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Retain legacy gateway and entity IDs; setup will request an own login."""
+    if entry.version > 2:
+        return False
+    if entry.version == 1:
+        hass.config_entries.async_update_entry(entry, version=2, minor_version=1)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    token = get_vicare_token(hass)
-    if not token:
-        raise ConfigEntryNotReady(
-            "Offizielle vicare-Integration nicht eingerichtet (liefert den OAuth-Token)"
+    if not entry.data.get("token") or not entry.data.get("auth_implementation"):
+        raise ConfigEntryAuthFailed("ViCare Rooms now requires its own OAuth sign-in")
+    try:
+        implementation = (
+            await config_entry_oauth2_flow.async_get_config_entry_implementation(
+                hass, entry
+            )
         )
+    except UnknownImplementationError as err:
+        raise ConfigEntryAuthFailed(
+            "Please configure ViCare Rooms application credentials"
+        ) from err
+    except ImplementationUnavailableError as err:
+        raise ConfigEntryNotReady("OAuth provider temporarily unavailable") from err
 
-    # Alt-Einträge (v1.0.x) oder Import ohne Daten: einmalig nachdiscovern
-    data = dict(entry.data)
-    if CONF_GATEWAY_SERIAL not in data:
-        try:
-            found = await async_discover_roomcontrols(hass, token)
-        except Exception as err:
-            raise ConfigEntryNotReady(f"Discovery fehlgeschlagen: {err}") from err
-        if not found:
-            raise ConfigEntryNotReady("Kein Smart RoomControl im ViCare-Konto gefunden")
-        found[0].pop("title", None)
-        data.update(found[0])
-        hass.config_entries.async_update_entry(entry, data=data)
+    oauth = config_entry_oauth2_flow.OAuth2Session(hass, entry, implementation)
+    api = ViCareRoomsApi(oauth.async_request)
+    if CONF_GATEWAY_SERIAL not in entry.data:
+        raise ConfigEntryAuthFailed("Please select a Smart RoomControl during sign-in")
 
-    coordinator = ViCareRoomsCoordinator(hass, entry)
+    coordinator = ViCareRoomsCoordinator(hass, entry, api)
     await coordinator.async_config_entry_first_refresh()
-    coordinator.api_room_names = await async_fetch_room_names(
-        hass, token, data[CONF_INSTALLATION_ID]
+    coordinator.api_room_names = await api.async_fetch_room_names(
+        entry.data[CONF_INSTALLATION_ID]
     )
+    # Refreshing OAuth can update entry.data. Always use the latest token data.
+    data = dict(entry.data)
 
     # Einmal gesehene Räume merken, damit ihre Entities bei Sensor-Ausfall
     # nicht verschwinden, sondern nur unavailable werden.
@@ -190,7 +142,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]]):
     """Pollt die Raum-Features und puffert kurze API-Störungen ab."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(
+        self, hass: HomeAssistant, entry: ConfigEntry, api: ViCareRoomsApi
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
@@ -198,6 +152,7 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
+        self._api = api
         self._url = features_url(
             entry.data[CONF_INSTALLATION_ID],
             entry.data[CONF_GATEWAY_SERIAL],
@@ -220,9 +175,14 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
     async def _async_update_data(self) -> dict[int, dict[str, float]]:
         try:
             data = await self._fetch()
+        except ConfigEntryAuthFailed:
+            raise
         except Exception as err:
             # kurze Störungen überbrücken statt sofort unavailable zu werden
-            if self.data is not None and time.monotonic() - self._last_ok < GRACE_SECONDS:
+            if (
+                self.data is not None
+                and time.monotonic() - self._last_ok < GRACE_SECONDS
+            ):
                 _LOGGER.warning(
                     "ViCare-API-Abruf fehlgeschlagen, nutze letzte Werte: %s", err
                 )
@@ -232,10 +192,7 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
         return data
 
     async def _fetch(self) -> dict[int, dict[str, float]]:
-        token = get_vicare_token(self.hass)
-        if not token:
-            raise UpdateFailed("Kein Access-Token der vicare-Integration gefunden")
-        payload = await api_get(self.hass, self._url, token)
+        payload = await self._api.async_get(self._url)
 
         rooms: dict[int, dict[str, float]] = {}
         for feat in payload.get("data", []):
@@ -249,10 +206,9 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
             ):
                 props = feat.get("properties") or {}
                 value = (props.get("value") or {}).get("value")
-                if (
-                    (props.get("status") or {}).get("value") == "connected"
-                    and value is not None
-                ):
+                if (props.get("status") or {}).get(
+                    "value"
+                ) == "connected" and value is not None:
                     key = "t" if parts[3] == "temperature" else "h"
                     rooms.setdefault(int(parts[1]), {})[key] = value
         if not rooms:
