@@ -17,6 +17,13 @@
       "reauth_confirm": {
         "title": "Sign in to ViCare Rooms",
         "description": "ViCare Rooms needs its own Viessmann authorization. Sign in to the account that contains your existing gateway. Your sensors and room names will be kept."
+      },
+      "user": {
+        "title": "ViCare Rooms",
+        "description": "Enter the Client ID of your own Viessmann API client. No client secret is required. In the [Viessmann developer portal]({portal_url}), register exactly `{redirect_uri}` as the redirect URI for this client (without a trailing slash) and disable Google reCAPTCHA.",
+        "data": {
+          "client_id": "Client ID"
+        }
       }
     },
     "abort": {
@@ -28,6 +35,9 @@
       "reauth_successful": "ViCare Rooms was successfully authorized.",
       "setup_required": "Add ViCare Rooms in Settings > Devices & services to sign in. Remove vicare_rooms: from configuration.yaml.",
       "missing_configuration": "Configure application credentials for ViCare Rooms first."
+    },
+    "error": {
+      "invalid_client_id": "Enter a Client ID."
     }
   },
   "options": {

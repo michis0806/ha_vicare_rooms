@@ -58,14 +58,23 @@ entered only on the Viessmann sign-in page.
 2. Create an API client, for example named **ViCare Rooms**, with Google reCAPTCHA
    **disabled** and this redirect URI: `https://my.home-assistant.io/redirect/oauth`.
 3. Copy the **Client ID**. New clients may take up to an hour to become active.
-4. Add **ViCare Rooms** in Home Assistant. When asked for application credentials,
-   enter the Client ID. The Client Secret is unused with PKCE; enter any value
-   if the dialog requires it.
+4. Add **ViCare Rooms** in Home Assistant and enter the Client ID in the
+   integration's own setup dialog. No client secret is requested. The client is
+   stored automatically in Home Assistant Application Credentials.
 5. Follow the redirect to Viessmann and authorize access, then select your gateway
    if more than one Smart RoomControl is found.
 
 If you do not use the My Home Assistant integration, register your instance's
 `<Home Assistant URL>/auth/external/callback` as the redirect URI instead.
+
+### Invalid redirection URI
+
+If Viessmann reports `Invalid redirection URI`, open the API client matching the
+Client ID you entered and add exactly `https://my.home-assistant.io/redirect/oauth`
+to its allowed redirect URIs, without a trailing slash. Save the client, then
+restart the sign-in flow in Home Assistant. Changing the client secret cannot fix
+this error. If My Home Assistant is disabled, use the instance callback described
+above instead.
 
 ### Updating from 1.x
 
@@ -129,8 +138,8 @@ Die offizielle ViCare-Integration bietet diese Werte nicht an.
 - Im [Viessmann-Entwicklerportal](https://app.developer.viessmann-climatesolutions.com/)
   einen API-Client für ViCare Rooms anlegen: Google reCAPTCHA deaktivieren und
   `https://my.home-assistant.io/redirect/oauth` als Redirect-URI eintragen.
-  Bei der Einrichtung die Client-ID angeben; das Client-Secret wird bei PKCE
-  ignoriert und kann beliebig sein. Neue Clients benötigen ggf. bis zu einer Stunde.
+  Bei der Einrichtung wird nur die Client-ID abgefragt, kein Client-Secret.
+  Neue Clients benötigen ggf. bis zu einer Stunde.
 - Installation über HACS (Custom Repository) oder manuell nach
   `config/custom_components/`, danach Neustart.
 - Einrichtung über *Integration hinzufügen* → **ViCare Rooms**, anschließend bei

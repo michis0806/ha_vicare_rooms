@@ -9,15 +9,21 @@ from typing import Any
 
 import aiohttp
 import voluptuous as vol
+from homeassistant.components.application_credentials import (
+    ClientCredential,
+    async_import_client_credential,
+)
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     ConfigEntry,
     ConfigFlowResult,
     OptionsFlow,
 )
+from homeassistant.const import CONF_CLIENT_ID
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.util import slugify
 
 from .api import ViCareRoomsApi
 from .const import (
@@ -47,6 +53,59 @@ class ViCareRoomsConfigFlow(
     @property
     def logger(self) -> logging.Logger:
         return _LOGGER
+
+    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+        """Collect only the public client ID, bypassing the generic secret dialog."""
+        implementations = await config_entry_oauth2_flow.async_get_implementations(
+            self.hass, DOMAIN
+        )
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            client_id = user_input[CONF_CLIENT_ID].strip()
+            if client_id:
+                await async_import_client_credential(
+                    self.hass,
+                    DOMAIN,
+                    ClientCredential(client_id, "", name="ViCare Rooms"),
+                    auth_domain=f"{DOMAIN}_{slugify(client_id)}",
+                )
+                implementations = (
+                    await config_entry_oauth2_flow.async_get_implementations(
+                        self.hass, DOMAIN
+                    )
+                )
+                self.flow_impl = next(
+                    impl
+                    for impl in implementations.values()
+                    if getattr(impl, "client_id", None) == client_id
+                )
+                return await self.async_step_auth()
+            errors[CONF_CLIENT_ID] = "invalid_client_id"
+
+        suggested = ""
+        if self.source == SOURCE_REAUTH:
+            previous = self._get_reauth_entry().data.get("auth_implementation")
+            if implementation := implementations.get(previous):
+                suggested = implementation.client_id
+        elif len(implementations) == 1:
+            suggested = next(iter(implementations.values())).client_id
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_CLIENT_ID, description={"suggested_value": suggested}
+                    ): str
+                }
+            ),
+            errors=errors,
+            description_placeholders={
+                "redirect_uri": config_entry_oauth2_flow.async_get_redirect_uri(
+                    self.hass
+                ),
+                "portal_url": "https://app.developer.viessmann-climatesolutions.com/",
+            },
+        )
 
     async def async_oauth_create_entry(self, data: dict) -> ConfigFlowResult:
         """Verify API access after the authorization-code exchange."""
@@ -124,10 +183,6 @@ class ViCareRoomsConfigFlow(
     async def async_step_reauth_confirm(self, user_input=None) -> ConfigFlowResult:
         if user_input is None:
             return self.async_show_form(step_id="reauth_confirm")
-        if implementation := self._get_reauth_entry().data.get("auth_implementation"):
-            return await self.async_step_pick_implementation(
-                {"implementation": implementation}
-            )
         return await self.async_step_user()
 
     async def async_step_import(self, import_data) -> ConfigFlowResult:

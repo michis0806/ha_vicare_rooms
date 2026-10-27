@@ -317,3 +317,74 @@ async def test_setup_keeps_refreshed_token_and_sensor_ids(hass, http_mock):
     assert sensor.native_value == 21.5
     assert entry.runtime_data.room_display_name(0) == "Wohnzimmer"
     await entry.runtime_data.async_shutdown()
+
+
+async def test_client_id_only_form_and_credential_registration(hass, http_mock):
+    """Use real Application Credentials storage without asking for a secret."""
+    from homeassistant.components import application_credentials
+    from homeassistant.helpers import config_entry_oauth2_flow
+
+    hass.config.components.add("my")
+    assert await application_credentials.async_setup(hass, {})
+    flow = flow_for(hass)
+    result = await flow.async_step_user()
+    assert result["step_id"] == "user"
+    assert {str(field) for field in result["data_schema"].schema} == {"client_id"}
+    assert (
+        result["description_placeholders"]["redirect_uri"]
+        == "https://my.home-assistant.io/redirect/oauth"
+    )
+    invalid = await flow.async_step_user({"client_id": "  "})
+    assert invalid["errors"] == {"client_id": "invalid_client_id"}
+    with patch(
+        "custom_components.vicare_rooms.config_flow.ViCareRoomsConfigFlow.async_step_auth",
+        new=AsyncMock(return_value={"type": "external"}),
+    ):
+        assert (await flow.async_step_user({"client_id": "  public-client-1  "}))[
+            "type"
+        ] == "external"
+    credentials = hass.data[
+        application_credentials.DATA_COMPONENT
+    ].async_client_credentials("vicare_rooms")
+    assert len(credentials) == 1
+    credential = next(iter(credentials.values()))
+    assert credential.client_id == "public-client-1"
+    assert credential.client_secret == ""
+    assert flow.flow_impl.client_secret == ""
+    implementations = await config_entry_oauth2_flow.async_get_implementations(
+        hass, "vicare_rooms"
+    )
+    assert flow.flow_impl.domain in implementations
+
+
+async def test_multiple_public_clients_do_not_overwrite_each_other(hass, http_mock):
+    from homeassistant.components import application_credentials
+    from homeassistant.helpers import config_entry_oauth2_flow
+
+    hass.config.components.add("my")
+    await application_credentials.async_setup(hass, {})
+    with patch(
+        "custom_components.vicare_rooms.config_flow.ViCareRoomsConfigFlow.async_step_auth",
+        new=AsyncMock(return_value={"type": "external"}),
+    ):
+        first = flow_for(hass)
+        await first.async_step_user({"client_id": "first-client"})
+        second = flow_for(hass)
+        await second.async_step_user({"client_id": "second-client"})
+    assert first.flow_impl.domain != second.flow_impl.domain
+    assert (
+        len(
+            await config_entry_oauth2_flow.async_get_implementations(
+                hass, "vicare_rooms"
+            )
+        )
+        == 2
+    )
+    entry = make_entry(
+        hass, data={**CANDIDATE, "auth_implementation": first.flow_impl.domain}
+    )
+    reauth = flow_for(hass, entry)
+    result = await reauth.async_step_reauth_confirm({})
+    assert result["step_id"] == "user"
+    field = next(iter(result["data_schema"].schema))
+    assert field.description["suggested_value"] == "first-client"

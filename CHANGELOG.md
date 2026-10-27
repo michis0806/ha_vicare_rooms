@@ -5,6 +5,16 @@ All notable changes to this integration are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-10-27
+
+### Fixed
+
+- Setup and re-authentication now ask only for the Client ID. The integration
+  registers the public client in Application Credentials with an empty secret,
+  bypassing Home Assistant's generic client-secret dialog.
+- The setup form shows the required redirect URI and links to the Viessmann
+  developer portal; documentation explains the invalid-redirect error.
+
 ## [2.0.0] - 2026-10-27
 
 ### Changed
@@ -80,3 +90,5 @@ Initial release. This version was never tagged.
 [1.1.0]: https://github.com/michis0806/ha_vicare_rooms/commit/79ca584
 
 [2.0.0]: https://github.com/michis0806/ha_vicare_rooms/compare/v1.1.3...v2.0.0
+
+[2.0.1]: https://github.com/michis0806/ha_vicare_rooms/compare/v2.0.0...v2.0.1

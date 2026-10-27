@@ -17,6 +17,13 @@
       "reauth_confirm": {
         "title": "Bei ViCare Rooms anmelden",
         "description": "ViCare Rooms benötigt eine eigene Freigabe bei Viessmann. Melde dich mit dem Konto an, das dein bisheriges Gateway enthält. Sensoren und Raumnamen bleiben erhalten."
+      },
+      "user": {
+        "title": "ViCare Rooms",
+        "description": "Gib die Client-ID deines eigenen Viessmann-API-Clients ein. Ein Client-Secret ist nicht erforderlich. Hinterlege im [Viessmann-Entwicklerportal]({portal_url}) bei diesem Client exakt `{redirect_uri}` als Redirect-URI (ohne Schrägstrich am Ende) und deaktiviere Google reCAPTCHA.",
+        "data": {
+          "client_id": "Client-ID"
+        }
       }
     },
     "abort": {
@@ -28,6 +35,9 @@
       "reauth_successful": "ViCare Rooms wurde erfolgreich autorisiert.",
       "setup_required": "Füge ViCare Rooms unter Einstellungen > Geräte & Dienste hinzu, um dich anzumelden. Entferne vicare_rooms: aus configuration.yaml.",
       "missing_configuration": "Bitte zuerst Anmeldedaten der Anwendung für ViCare Rooms hinterlegen."
+    },
+    "error": {
+      "invalid_client_id": "Bitte eine Client-ID eingeben."
     }
   },
   "options": {
