@@ -1,4 +1,4 @@
-"""ViCare Raumwerte — Raumtemperaturen/-feuchten und Soll-Temperaturen vom Viessmann Smart RoomControl.
+"""ViCare Raumwerte — Raumtemperaturen/-feuchten, Soll-Temperaturen und Fenster-offen-Erkennung vom Viessmann Smart RoomControl.
 
 Liest die rooms.*-Features mit einer eigenen OAuth-Anmeldung bei Viessmann.
 """
@@ -43,7 +43,7 @@ CONFIG_SCHEMA = vol.Schema(
     {vol.Optional(DOMAIN): vol.Schema({})}, extra=vol.ALLOW_EXTRA
 )
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["binary_sensor", "sensor"]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -140,7 +140,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]]):
+class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float | bool]]]):
     """Pollt die Raum-Features und puffert kurze API-Störungen ab."""
 
     def __init__(
@@ -173,7 +173,7 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
             or f"{fallback} {idx}"
         )
 
-    async def _async_update_data(self) -> dict[int, dict[str, float]]:
+    async def _async_update_data(self) -> dict[int, dict[str, float | bool]]:
         try:
             data = await self._fetch()
         except ConfigEntryAuthFailed:
@@ -192,10 +192,10 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
         self._last_ok = time.monotonic()
         return data
 
-    async def _fetch(self) -> dict[int, dict[str, float]]:
+    async def _fetch(self) -> dict[int, dict[str, float | bool]]:
         payload = await self._api.async_get(self._url)
 
-        rooms: dict[int, dict[str, float]] = {}
+        rooms: dict[int, dict[str, float | bool]] = {}
         for feat in payload.get("data", []):
             parts = feat.get("feature", "").split(".")
             if len(parts) < 4 or parts[0] != "rooms" or not parts[1].isdigit():
@@ -212,6 +212,12 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
                 ) == "connected" and value is not None:
                     key = "t" if parts[3] == "temperature" else "h"
                     rooms.setdefault(int(parts[1]), {})[key] = value
+            elif len(parts) == 4 and parts[2:4] == ["sensors", "openWindow"]:
+                # Fenster-offen-Erkennung der Raumsteuerung (über Temperatursturz
+                # am Thermostat). rooms.N.sensors.window.openState ist deprecated.
+                value = (props.get("value") or {}).get("value")
+                if isinstance(value, bool):
+                    rooms.setdefault(int(parts[1]), {})["window"] = value
             elif (
                 len(parts) == 6
                 and parts[2:4] == ["temperature", "levels"]

@@ -52,6 +52,11 @@
     "description": "Create a Viessmann API client with Google reCAPTCHA disabled as described in the [setup instructions]({more_info_url}). Enter its Client ID. PKCE is used, so the client secret is ignored; enter any value."
   },
   "entity": {
+    "binary_sensor": {
+      "open_window": {
+        "name": "Open window"
+      }
+    },
     "sensor": {
       "setpoint_normal": {
         "name": "Normal temperature"

@@ -1,11 +1,16 @@
-"""Room values and setpoints are parsed from the RoomControl feature list."""
+"""Room values, setpoints and open-window flags are parsed from the RoomControl feature list."""
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from conftest import make_entry
 from custom_components.vicare_rooms import ViCareRoomsCoordinator
+from custom_components.vicare_rooms.binary_sensor import (
+    ViCareRoomOpenWindow,
+    async_setup_entry as async_setup_binary_entry,
+)
 from custom_components.vicare_rooms.sensor import ViCareRoomSensor, async_setup_entry
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass
 
 pytestmark = pytest.mark.asyncio
@@ -24,6 +29,14 @@ def level(idx, name, mode, temperature):
     }
 
 
+def window(idx, value, *, deprecated=False):
+    name = "window.openState" if deprecated else "openWindow"
+    return {
+        "feature": f"rooms.{idx}.sensors.{name}",
+        "properties": {"value": {"type": "boolean", "value": value}},
+    }
+
+
 def sensor(idx, kind, value, status="connected"):
     props = {"status": {"value": status}}
     if value is not None:
@@ -38,6 +51,9 @@ FEATURES = {
         level(0, "normal", "heating", 20),
         level(0, "reduced", "heating", 16),
         level(0, "normal", "perceived", 20),
+        window(0, True),
+        # veraltete Variante wird nicht ausgewertet
+        window(1, True, deprecated=True),
         # Kühl-Niveaus ohne Wert (Anlage ohne Kühlung) werden ignoriert
         {"feature": "rooms.0.temperature.levels.normal.cooling", "properties": {}},
         sensor(1, "temperature", 21.0),
@@ -62,7 +78,7 @@ async def coordinator_for(hass, payload):
 async def test_setpoints_are_parsed_next_to_sensor_values(hass):
     _, coordinator = await coordinator_for(hass, FEATURES)
     assert coordinator.data == {
-        0: {"t": 16.5, "h": 54.8, "normal": 20, "reduced": 16},
+        0: {"t": 16.5, "h": 54.8, "normal": 20, "reduced": 16, "window": True},
         1: {"t": 21.0},
     }
 
@@ -100,3 +116,25 @@ async def test_setpoint_unavailable_when_level_disappears(hass):
     coordinator.data = {0: {"t": 16.5}}
     assert normal.native_value is None
     assert not normal.available
+
+
+async def test_open_window_entity_only_for_rooms_with_flag(hass):
+    entry, coordinator = await coordinator_for(hass, FEATURES)
+    entry.runtime_data = coordinator
+    added = []
+    await async_setup_binary_entry(hass, entry, added.extend)
+    assert [e.unique_id for e in added] == ["gateway-1-room-0-open-window"]
+    sensor = added[0]
+    assert sensor.device_class == BinarySensorDeviceClass.WINDOW
+    assert sensor.translation_key == "open_window"
+    assert sensor.is_on is True
+    coordinator.data = {0: {"t": 16.5, "window": False}}
+    assert sensor.is_on is False
+    assert sensor.available
+
+
+async def test_open_window_unavailable_without_flag(hass):
+    _, coordinator = await coordinator_for(hass, FEATURES)
+    sensor = ViCareRoomOpenWindow(coordinator, "gateway-1", 1)
+    assert sensor.is_on is None
+    assert not sensor.available
