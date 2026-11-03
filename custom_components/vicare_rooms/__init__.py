@@ -1,4 +1,4 @@
-"""ViCare Raumwerte — Raumtemperaturen/-feuchten vom Viessmann Smart RoomControl.
+"""ViCare Raumwerte — Raumtemperaturen/-feuchten und Soll-Temperaturen vom Viessmann Smart RoomControl.
 
 Liest die rooms.*-Features mit einer eigenen OAuth-Anmeldung bei Viessmann.
 """
@@ -31,6 +31,7 @@ from .const import (
     CONF_ROOMCONTROL_ID,
     DOMAIN,
     GRACE_SECONDS,
+    SETPOINT_LEVELS,
     UPDATE_INTERVAL,
     features_url,
 )
@@ -197,20 +198,31 @@ class ViCareRoomsCoordinator(DataUpdateCoordinator[dict[int, dict[str, float]]])
         rooms: dict[int, dict[str, float]] = {}
         for feat in payload.get("data", []):
             parts = feat.get("feature", "").split(".")
+            if len(parts) < 4 or parts[0] != "rooms" or not parts[1].isdigit():
+                continue
+            props = feat.get("properties") or {}
             if (
                 len(parts) == 4
-                and parts[0] == "rooms"
-                and parts[1].isdigit()
                 and parts[2] == "sensors"
                 and parts[3] in ("temperature", "humidity")
             ):
-                props = feat.get("properties") or {}
                 value = (props.get("value") or {}).get("value")
                 if (props.get("status") or {}).get(
                     "value"
                 ) == "connected" and value is not None:
                     key = "t" if parts[3] == "temperature" else "h"
                     rooms.setdefault(int(parts[1]), {})[key] = value
+            elif (
+                len(parts) == 6
+                and parts[2:4] == ["temperature", "levels"]
+                and parts[4] in SETPOINT_LEVELS
+                and parts[5] == "heating"
+            ):
+                # rooms.N.temperature.levels.{normal,reduced}.heating:
+                # Soll-Temperatur des jeweiligen Heizniveaus aus der ViCare-App
+                value = (props.get("temperature") or {}).get("value")
+                if value is not None:
+                    rooms.setdefault(int(parts[1]), {})[parts[4]] = value
         if not rooms:
             raise UpdateFailed("Antwort der ViCare-API enthielt keine Raumwerte")
         return rooms

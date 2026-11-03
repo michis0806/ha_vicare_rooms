@@ -13,6 +13,9 @@ CONF_GATEWAY_SERIAL = "gateway_serial"
 CONF_ROOMCONTROL_ID = "roomcontrol_id"
 CONF_KNOWN_ROOMS = "known_rooms"
 
+# Heizniveaus mit eigener Soll-Temperatur je Raum (rooms.N.temperature.levels.*.heating)
+SETPOINT_LEVELS = ("normal", "reduced")
+
 UPDATE_INTERVAL = 300  # Sekunden
 GRACE_SECONDS = 1800  # bei API-Störung alte Werte max. 30 Min weiterreichen
 REQUEST_TIMEOUT = 15

@@ -5,6 +5,20 @@ All notable changes to this integration are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-03
+
+### Added
+
+- Two sensors per controlled room for the heating setpoints configured in the
+  ViCare app: **Normal temperature** and **Reduced temperature**
+  (`rooms.N.temperature.levels.normal.heating` / `…reduced.heating`). They are
+  read from the same API request as the room values, so there are no extra API
+  calls. Rooms without temperature levels (such as unused room slots) get no
+  setpoint sensors.
+
+Existing entity IDs and unique IDs stay unchanged. A Home Assistant restart is
+required.
+
 ## [2.0.1] - 2026-10-27
 
 ### Fixed
@@ -92,3 +106,5 @@ Initial release. This version was never tagged.
 [2.0.0]: https://github.com/michis0806/ha_vicare_rooms/compare/v1.1.3...v2.0.0
 
 [2.0.1]: https://github.com/michis0806/ha_vicare_rooms/compare/v2.0.0...v2.0.1
+
+[2.1.0]: https://github.com/michis0806/ha_vicare_rooms/compare/v2.0.1...v2.1.0

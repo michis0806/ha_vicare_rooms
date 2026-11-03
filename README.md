@@ -3,9 +3,9 @@
 [![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=michis0806&repository=ha_vicare_rooms&category=integration)
 [![Open your Home Assistant instance and start setting up this integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=vicare_rooms)
 
-Home Assistant custom integration that exposes **per-room temperature and humidity**
-from a Viessmann **Smart RoomControl** (ViCare room control) as proper sensor
-entities — one device per room.
+Home Assistant custom integration that exposes **per-room temperature, humidity
+and heating setpoints** from a Viessmann **Smart RoomControl** (ViCare room control)
+as proper sensor entities — one device per room.
 
 [Deutsche Beschreibung weiter unten.](#deutsch)
 
@@ -18,7 +18,11 @@ of the RoomControl device directly from the Viessmann API and creates:
 
 - one **device per room** (linked to a "ViCare RoomControl" hub device),
 - a **temperature** and a **humidity** sensor per room (localized entity names via
-  device classes — works in every Home Assistant language).
+  device classes — works in every Home Assistant language),
+- a **normal temperature** and a **reduced temperature** sensor per controlled room:
+  the heating setpoints of both levels as configured in the ViCare app
+  (`rooms.*.temperature.levels.{normal,reduced}.heating`). Which level is currently
+  active is not exposed by the API.
 
 Values are the room aggregates computed by the RoomControl (weighted average of the
 climate sensors assigned to a room). Individual climate-sensor readings are **not
@@ -132,6 +136,10 @@ This project is not affiliated with Viessmann. Use at your own risk.
 Home-Assistant-Integration, die die **Raumtemperaturen und -luftfeuchten** eines
 Viessmann **Smart RoomControl** als Sensoren bereitstellt — ein Gerät pro Raum.
 Die offizielle ViCare-Integration bietet diese Werte nicht an.
+
+Zusätzlich gibt es je geregeltem Raum die in der ViCare-App eingestellten
+Soll-Temperaturen als Sensoren **Normaltemperatur** und **Reduzierte Temperatur**.
+Welches Niveau gerade aktiv ist, liefert die API nicht.
 
 - Benötigt **Home Assistant 2026.10.0 oder neuer** und eine **eigene OAuth-Anmeldung**
   bei Viessmann. Die offizielle ViCare-Integration ist optional.
